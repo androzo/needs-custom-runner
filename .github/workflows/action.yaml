@@ -27,4 +27,4 @@ jobs:
     - name: Deploy to AWS
       run: |
         # Your AWS CLI commands (e.g., deploy CloudFormation, S3 sync, etc.)
-        echo "Deploying using assumed role..."
+        aws s3 ls
