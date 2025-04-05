@@ -1,0 +1,47 @@
+name: Assume AWS Role via Entra ID OIDC
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write  # Required for OIDC
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Login to Azure AD
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}  # Entra ID App Client ID
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }} # Entra ID Tenant ID
+          allow-no-subscriptions: true
+
+      - name: Get Entra ID OIDC Token
+        id: get-oidc-token
+        run: |
+          TOKEN=$(curl -s -H "Authorization: Bearer ${{ steps.login.outputs.idToken }}" \
+            "https://login.microsoftonline.com/${{ secrets.AZURE_TENANT_ID }}/oauth2/v2.0/token" \
+            -d "grant_type=client_credentials" \
+            -d "client_id=${{ secrets.AZURE_CLIENT_ID }}" \
+            -d "client_secret=${{ secrets.AZURE_CLIENT_SECRET }}" \
+            -d "scope=api://${{ secrets.AZURE_CLIENT_ID }}/.default" | jq -r '.access_token')
+          echo "token=$TOKEN" >> $GITHUB_OUTPUT
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: sa-east-1
+          role-to-assume: arn:aws:iam::396608777381:role/GithubAWSRole
+          role-session-name: github-actions-session
+          web-identity-token: ${{ steps.get-oidc-token.outputs.token }}
+
+    - name: Verify AWS Role
+      run: aws sts get-caller-identity
+
+    - name: Deploy to AWS
+      run: aws s3 ls
