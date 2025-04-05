@@ -26,8 +26,6 @@ jobs:
           # Get token for the specific Azure AD application (audience)
           TOKEN=$(az account get-access-token --resource api://${{ secrets.AZURE_CLIENT_ID }} --query accessToken -o tsv)
           
-          # Mask the token in logs (security best practice)
-          echo "::add-mask::$TOKEN"
           
           # Store token in environment variable
           echo "ENTRA_ID_TOKEN=$TOKEN" >> $GITHUB_ENV
