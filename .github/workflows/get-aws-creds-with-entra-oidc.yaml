@@ -14,12 +14,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Login to Azure AD
-        uses: azure/login@v1
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}  # Entra ID App Client ID
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }} # Entra ID Tenant ID
-          allow-no-subscriptions: true
+      # - name: Login to Azure AD
+      #   uses: azure/login@v1
+      #   with:
+      #     client-id: ${{ secrets.AZURE_CLIENT_ID }}  # Entra ID App Client ID
+      #     tenant-id: ${{ secrets.AZURE_TENANT_ID }} # Entra ID Tenant ID
+      #     allow-no-subscriptions: true
 
       - name: Get Entra ID OIDC Token
         id: get-oidc-token
