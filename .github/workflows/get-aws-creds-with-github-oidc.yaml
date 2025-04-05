@@ -1,4 +1,4 @@
-name: AWS Deployment via Entra ID
+name: AWS Assume Role via Github OIDC
 on:
   push:
     branches: [ main ]
