@@ -5,15 +5,32 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     permissions:
-      id-token: write  # Required for OIDC
+      id-token: write
       contents: read
-      
+
     steps:
-    - name: Configure AWS Credentials
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        role-to-assume: arn:aws:iam::396608777381:role/EntraOIDCRole
-        role-session-name: github-${{ github.repository }}-${{ github.run_id }}
-        aws-region: sa-east-1
-        oidc-provider: login.microsoftonline.com/{tenant-id}
-        audience: api://AzureADTokenExchange
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Azure Login via Federated Identity
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: d816621b-99bc-45a9-b52c-4587928776d2
+
+      - name: Get Entra Token
+        run: |
+          TOKEN=$(az account get-access-token --resource "sts.amazonaws.com" --query accessToken -o tsv)
+          echo "::add-mask::$TOKEN"
+          echo "ENTRA_ID_TOKEN=$TOKEN" >> $GITHUB_ENV
+
+      - name: Assume Role in AWS
+        run: |
+          ROLE_ARN="arn:aws:iam::396608777381:role/EntraOIDCRole"
+          CREDS=$(aws sts assume-role-with-web-identity \
+            --role-arn "$ROLE_ARN" \
+            --role-session-name "github-action" \
+            --web-identity-token "$ENTRA_ID_TOKEN" \
+            --duration-seconds 3600)
+          echo $CREDS | jq .
