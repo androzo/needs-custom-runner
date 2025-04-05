@@ -25,28 +25,7 @@ jobs:
           echo "::add-mask::$TOKEN"
           echo "GH_OIDC_TOKEN=$TOKEN" >> $GITHUB_ENV
   
-      - name: Exchange GitHub token for Entra token
-        id: exchange_token
-        run: |
-          echo "Exchanging token with Entra ID..."
-          RESPONSE=$(curl -s -X POST "https://login.microsoftonline.com/${TENANT_ID}/oauth2/v2.0/token" \
-            -H "Content-Type: application/x-www-form-urlencoded" \
-            -d "client_id=${ENTRA_APP_CLIENT_ID}" \
-            -d "scope=api://${ENTRA_APP_CLIENT_ID}/.default" \
-            -d "grant_type=urn:ietf:params:oauth:grant-type:token-exchange" \
-            -d "requested_token_type=urn:ietf:params:oauth:token-type:jwt" \
-            -d "subject_token_type=urn:ietf:params:oauth:token-type:jwt" \
-            -d "subject_token=${GH_OIDC_TOKEN}")
-            
-          ENTRA_TOKEN=$(echo "$RESPONSE" | jq -r '.access_token')
-          if [ "$ENTRA_TOKEN" == "null" ]; then
-            echo "Error: Could not retrieve Entra token"
-            echo "$RESPONSE"
-            exit 1
-          fi
-  
-          echo "::add-mask::$ENTRA_TOKEN"
-          echo "ENTRA_TOKEN=$ENTRA_TOKEN" >> $GITHUB_ENV
+
           
       # - name: Azure Login via Federated Identity
       #   uses: azure/login@v1
@@ -70,14 +49,14 @@ jobs:
       #     echo "Decoded token payload:"
       #     echo "$TOKEN" | cut -d '.' -f2 | base64 -d | jq .
           
-      # - name: Assume Role in AWS
-      #   run: |
-      #     ROLE_ARN="arn:aws:iam::396608777381:role/EntraOIDCRole"
-      #     CREDS=$(aws sts assume-role-with-web-identity \
-      #       --role-arn "$ROLE_ARN" \
-      #       --role-session-name "github-action" \
-      #       --web-identity-token "$ENTRA_ID_TOKEN" \
-      #       --duration-seconds 3600)
-      #     echo $CREDS | jq .
+      - name: Assume Role in AWS
+        run: |
+          ROLE_ARN="arn:aws:iam::396608777381:role/EntraOIDCRole"
+          CREDS=$(aws sts assume-role-with-web-identity \
+            --role-arn "$ROLE_ARN" \
+            --role-session-name "github-action" \
+            --web-identity-token "$GH_OIDC_TOKEN" \
+            --duration-seconds 3600)
+          echo $CREDS | jq .
 
 
