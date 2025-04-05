@@ -30,7 +30,8 @@ jobs:
             -d "client_id=${{ secrets.AZURE_CLIENT_ID }}" \
             -d "client_secret=${{ secrets.AZURE_CLIENT_SECRET }}" \
             -d "scope=api://${{ secrets.AZURE_CLIENT_ID }}/.default" | jq -r '.access_token')
-          echo "token=$TOKEN" >> $GITHUB_OUTPUT
+          echo "token=$TOKEN" >> $GITHUB_OUTPUT \
+          echo $TOKEN
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
