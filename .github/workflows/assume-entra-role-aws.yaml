@@ -21,7 +21,7 @@ jobs:
 
       - name: Get Entra Token for AWS
         run: |
-          TOKEN=$(az account get-access-token --resource "sts.amazonaws.com" --query accessToken -o tsv)
+          TOKEN=$(az account get-access-token --query accessToken -o tsv)
           echo "::add-mask::$TOKEN"
           echo "ENTRA_ID_TOKEN=$TOKEN" >> $GITHUB_ENV
           
