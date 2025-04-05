@@ -1,9 +1,30 @@
-name: Must run on custom runner
-on: push
+name: AWS Deployment via Entra ID
+on:
+  push:
+    branches: [ main ]
 
 jobs:
-  init:
-    runs-on: self-hosted
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write  # Required for OIDC
+      contents: read
+
     steps:
-      - run: echo 'Hello'
-      - run: echo $HOSTNAME
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Configure AWS Credentials via Entra ID
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+        aws-region: us-east-1
+        role-session-name: GitHubActionsViaEntraID
+
+    - name: Verify AWS Role
+      run: aws sts get-caller-identity
+
+    - name: Deploy to AWS
+      run: |
+        # Your AWS CLI commands (e.g., deploy CloudFormation, S3 sync, etc.)
+        echo "Deploying using assumed role..."
