@@ -1,7 +1,6 @@
 name: Assume AWS Role via Github OIDC
 on:
-  push:
-    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   deploy:
