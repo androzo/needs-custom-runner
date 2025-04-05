@@ -1,0 +1,16 @@
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write  # Required for OIDC
+      contents: read
+      
+    steps:
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: arn:aws:iam::396608777381:role/EntraOIDCRole
+        role-session-name: github-${{ github.repository }}-${{ github.run_id }}
+        aws-region: sa-east-1
+        oidc-provider: login.microsoftonline.com/{tenant-id}
+        audience: api://AzureADTokenExchange
