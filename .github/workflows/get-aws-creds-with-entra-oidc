@@ -1,4 +1,4 @@
-name: Assume AWS Role via Entra ID OIDC
+name: Assume AWS Role via Github OIDC
 
 on:
   push:
