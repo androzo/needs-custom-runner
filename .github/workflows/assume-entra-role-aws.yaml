@@ -40,7 +40,7 @@ jobs:
           CREDS=$(aws sts assume-role-with-web-identity \
             --role-arn "$ROLE_ARN" \
             --role-session-name "github-action" \
-            --web-identity-token "$GH_OIDC_TOKEN" \
+            --web-identity-token "$ENTRA_ID_TOKEN" \
             --duration-seconds 3600)
           echo $CREDS | jq .
 
