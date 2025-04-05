@@ -17,14 +17,14 @@ jobs:
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: d816621b-99bc-45a9-b52c-4587928776d2
+          allow-no-subscriptions: true
 
-      - name: Get Entra Token
+      - name: Get Entra Token for AWS
         run: |
           TOKEN=$(az account get-access-token --resource "sts.amazonaws.com" --query accessToken -o tsv)
           echo "::add-mask::$TOKEN"
           echo "ENTRA_ID_TOKEN=$TOKEN" >> $GITHUB_ENV
-
+          
       - name: Assume Role in AWS
         run: |
           ROLE_ARN="arn:aws:iam::396608777381:role/EntraOIDCRole"
