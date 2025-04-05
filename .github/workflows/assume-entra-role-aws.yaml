@@ -16,14 +16,41 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Request GitHub OIDC Token
-        id: get_oidc
+      # - name: Request GitHub OIDC Token
+      #   id: get_oidc
+      #   run: |
+      #     echo "Requesting GitHub OIDC token..."
+      #     TOKEN=$(curl -s "https://login.microsoftonline.com/18725e25-6106-4ce6-9b80-e32f232cace2/oauth2/v2.0/token&audience=${ENTRA_APP_CLIENT_ID}" \
+      #       -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" | jq -r '.value')
+      #     echo "::add-mask::$TOKEN"
+      #     echo "GH_OIDC_TOKEN=$TOKEN" >> $GITHUB_ENV
+      - name: Request Entra Token using GitHub OIDC
+        id: get_token
         run: |
-          echo "Requesting GitHub OIDC token..."
-          TOKEN=$(curl -s "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=${ENTRA_APP_CLIENT_ID}" \
-            -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" | jq -r '.value')
-          echo "::add-mask::$TOKEN"
-          echo "GH_OIDC_TOKEN=$TOKEN" >> $GITHUB_ENV
+            echo "Requesting GitHub OIDC token..."
+            GH_TOKEN=$(curl -s "https://login.microsoftonline.com/18725e25-6106-4ce6-9b80-e32f232cace2/oauth2/v2.0/token&audience=${ENTRA_APP_CLIENT_ID}" \
+              -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" | jq -r '.value')
+            echo "::add-mask::$GH_TOKEN"
+        
+            echo "Exchanging token for Entra access token..."
+            RESPONSE=$(curl -s -X POST "https://login.microsoftonline.com/${TENANT_ID}/oauth2/v2.0/token" \
+              -H "Content-Type: application/x-www-form-urlencoded" \
+              -d "client_id=${ENTRA_APP_CLIENT_ID}" \
+              -d "client_assertion_type=urn:ietf:params:oauth:client-assertion-type:jwt-bearer" \
+              -d "client_assertion=${GH_TOKEN}" \
+              -d "scope=api://${ENTRA_APP_CLIENT_ID}/.default" \
+              -d "grant_type=client_credentials")
+        
+            ENTRA_TOKEN=$(echo "$RESPONSE" | jq -r '.access_token')
+        
+            if [ "$ENTRA_TOKEN" == "null" ]; then
+              echo "Failed to get Entra token:"
+              echo "$RESPONSE"
+              exit 1
+            fi
+        
+            echo "::add-mask::$ENTRA_TOKEN"
+            echo "ENTRA_TOKEN=$ENTRA_TOKEN" >> $GITHUB_ENV
   
 
           
