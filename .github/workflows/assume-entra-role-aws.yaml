@@ -19,30 +19,36 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           audience: sts.amazonaws.com
           allow-no-subscriptions: true
-
+          
+      - name: Configure AWS Credentials via Entra ID
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::396608777381:role/EntraOIDCRole
+          aws-region: sa-east-1
+          role-session-name: GitHubActionsViaEntraID
       
-      - name: Get Entra Token for AWS
-        id: get_entra_token
-        run: |
-          # Get token for the specific Azure AD application (audience)
-          # TOKEN=$(az account get-access-token --resource sts.amazonaws.com --query accessToken -o tsv)
-          TOKEN=$(az account get-access-token --scope api://${{ secrets.AZURE_CLIENT_ID }}/aws.access --query accessToken -o tsv)
+      # - name: Get Entra Token for AWS
+      #   id: get_entra_token
+      #   run: |
+      #     # Get token for the specific Azure AD application (audience)
+      #     # TOKEN=$(az account get-access-token --resource sts.amazonaws.com --query accessToken -o tsv)
+      #     TOKEN=$(az account get-access-token --scope api://${{ secrets.AZURE_CLIENT_ID }}/aws.access --query accessToken -o tsv)
 
-          # Store token in environment variable
-          echo "ENTRA_ID_TOKEN=$TOKEN" >> $GITHUB_ENV
+      #     # Store token in environment variable
+      #     echo "ENTRA_ID_TOKEN=$TOKEN" >> $GITHUB_ENV
           
-          # (Optional) Decode and inspect token claims
-          echo "Decoded token payload:"
-          echo "$TOKEN" | cut -d '.' -f2 | base64 -d | jq .
+      #     # (Optional) Decode and inspect token claims
+      #     echo "Decoded token payload:"
+      #     echo "$TOKEN" | cut -d '.' -f2 | base64 -d | jq .
           
-      - name: Assume Role in AWS
-        run: |
-          ROLE_ARN="arn:aws:iam::396608777381:role/EntraOIDCRole"
-          CREDS=$(aws sts assume-role-with-web-identity \
-            --role-arn "$ROLE_ARN" \
-            --role-session-name "github-action" \
-            --web-identity-token "$ENTRA_ID_TOKEN" \
-            --duration-seconds 3600)
-          echo $CREDS | jq .
+      # - name: Assume Role in AWS
+      #   run: |
+      #     ROLE_ARN="arn:aws:iam::396608777381:role/EntraOIDCRole"
+      #     CREDS=$(aws sts assume-role-with-web-identity \
+      #       --role-arn "$ROLE_ARN" \
+      #       --role-session-name "github-action" \
+      #       --web-identity-token "$ENTRA_ID_TOKEN" \
+      #       --duration-seconds 3600)
+      #     echo $CREDS | jq .
 
 
