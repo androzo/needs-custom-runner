@@ -40,8 +40,8 @@ jobs:
           role-session-name: github-actions-session
           web-identity-token: ${{ steps.get-oidc-token.outputs.token }}
 
-    - name: Verify AWS Role
-      run: aws sts get-caller-identity
-
-    - name: Deploy to AWS
-      run: aws s3 ls
+      - name: Verify AWS Role
+        run: aws sts get-caller-identity
+  
+      - name: Deploy to AWS
+        run: aws s3 ls
