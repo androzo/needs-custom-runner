@@ -7,16 +7,46 @@ jobs:
     permissions:
       id-token: write
       contents: read
-
+    env:
+      TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      ENTRA_APP_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AWS_ROLE_ARN: arn:aws:iam::396608777381:role/EntraOIDCRole
+      AWS_PROVIDER_URL: https://login.microsoftonline.com/${{ secrets.AZURE_TENANT_ID }}/v2.0
     steps:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Get GitHub OIDC token
-        id: oidc
+      - name: Request GitHub OIDC Token
+        id: get_oidc
         run: |
-            echo "GH_TOKEN=$(curl -s https://login.microsoftonline.com/18725e25-6106-4ce6-9b80-e32f232cace2/oauth2/v2.0/token\&audience=api://9566058a-66e7-4363-b0a0-cc3080dbd39e)" >> $GITHUB_ENV
-            echo "$GH_TOKEN" | cut -d '.' -f2 | base64 -d | jq .
+          echo "Requesting GitHub OIDC token..."
+          TOKEN=$(curl -s "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=${ENTRA_APP_CLIENT_ID}" \
+            -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" | jq -r '.value')
+          echo "::add-mask::$TOKEN"
+          echo "GH_OIDC_TOKEN=$TOKEN" >> $GITHUB_ENV
+  
+      - name: Exchange GitHub token for Entra token
+        id: exchange_token
+        run: |
+          echo "Exchanging token with Entra ID..."
+          RESPONSE=$(curl -s -X POST "https://login.microsoftonline.com/${TENANT_ID}/oauth2/v2.0/token" \
+            -H "Content-Type: application/x-www-form-urlencoded" \
+            -d "client_id=${ENTRA_APP_CLIENT_ID}" \
+            -d "scope=api://${ENTRA_APP_CLIENT_ID}/.default" \
+            -d "grant_type=urn:ietf:params:oauth:grant-type:token-exchange" \
+            -d "requested_token_type=urn:ietf:params:oauth:token-type:jwt" \
+            -d "subject_token_type=urn:ietf:params:oauth:token-type:jwt" \
+            -d "subject_token=${GH_OIDC_TOKEN}")
+            
+          ENTRA_TOKEN=$(echo "$RESPONSE" | jq -r '.access_token')
+          if [ "$ENTRA_TOKEN" == "null" ]; then
+            echo "Error: Could not retrieve Entra token"
+            echo "$RESPONSE"
+            exit 1
+          fi
+  
+          echo "::add-mask::$ENTRA_TOKEN"
+          echo "ENTRA_TOKEN=$ENTRA_TOKEN" >> $GITHUB_ENV
           
       # - name: Azure Login via Federated Identity
       #   uses: azure/login@v1
