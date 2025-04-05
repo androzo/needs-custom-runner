@@ -24,6 +24,8 @@ jobs:
           TOKEN=$(az account get-access-token --query accessToken -o tsv)
           echo "::add-mask::$TOKEN"
           echo "ENTRA_ID_TOKEN=$TOKEN" >> $GITHUB_ENV
+          echo "$ENTRA_ID_TOKEN" | cut -d '.' -f2 | base64 -d | jq .
+          
           
       - name: Assume Role in AWS
         run: |
@@ -35,13 +37,4 @@ jobs:
             --duration-seconds 3600)
           echo $CREDS | jq .
 
-      - name: Get GitHub OIDC Token
-        id: oidc
-        run: |
-          echo "Fetching token..."
-        env:
-          OIDC_TOKEN: ${{ steps.oidc.outputs.id_token }}
-      
-      - name: Decode Token
-        run: |
-          echo "$OIDC_TOKEN" | cut -d '.' -f2 | base64 -d | jq .
+
