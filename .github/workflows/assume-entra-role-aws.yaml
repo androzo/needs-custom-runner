@@ -25,7 +25,8 @@ jobs:
         id: get_entra_token
         run: |
           # Get token for the specific Azure AD application (audience)
-          TOKEN=$(az account get-access-token --resource api://${{ secrets.AZURE_CLIENT_ID }} --query accessToken -o tsv)
+          TOKEN=$(az account get-access-token --resource sts.amazonaws.com --query accessToken -o tsv)
+          # TOKEN=$(az account get-access-token --resource api://${{ secrets.AZURE_CLIENT_ID }} --query accessToken -o tsv)
 
           # Store token in environment variable
           echo "ENTRA_ID_TOKEN=$TOKEN" >> $GITHUB_ENV
