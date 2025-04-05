@@ -12,36 +12,42 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Azure Login via Federated Identity
-        uses: azure/login@v1
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          allow-no-subscriptions: true
+      - name: Get GitHub OIDC token
+        id: oidc
+        run: |
+            echo "GH_TOKEN=$(curl -s https://login.microsoftonline.com/18725e25-6106-4ce6-9b80-e32f232cace2/oauth2/v2.0/token\&audience=api://9566058a-66e7-4363-b0a0-cc3080dbd39e)" >> $GITHUB_ENV
+            echo "$GH_TOKEN" | cut -d '.' -f2 | base64 -d | jq .
+          
+      # - name: Azure Login via Federated Identity
+      #   uses: azure/login@v1
+      #   with:
+      #     client-id: ${{ secrets.AZURE_CLIENT_ID }}
+      #     tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+      #     allow-no-subscriptions: true
 
       
-      - name: Get Entra Token for AWS
-        id: get_entra_token
-        run: |
-          # Get token for the specific Azure AD application (audience)
-          TOKEN=$(az account get-access-token --resource api://${{ secrets.AZURE_CLIENT_ID }} --query accessToken -o tsv)
+      # - name: Get Entra Token for AWS
+      #   id: get_entra_token
+      #   run: |
+      #     # Get token for the specific Azure AD application (audience)
+      #     TOKEN=$(az account get-access-token --resource api://${{ secrets.AZURE_CLIENT_ID }} --query accessToken -o tsv)
           
           
-          # Store token in environment variable
-          echo "ENTRA_ID_TOKEN=$TOKEN" >> $GITHUB_ENV
+      #     # Store token in environment variable
+      #     echo "ENTRA_ID_TOKEN=$TOKEN" >> $GITHUB_ENV
           
-          # (Optional) Decode and inspect token claims
-          echo "Decoded token payload:"
-          echo "$TOKEN" | cut -d '.' -f2 | base64 -d | jq .
+      #     # (Optional) Decode and inspect token claims
+      #     echo "Decoded token payload:"
+      #     echo "$TOKEN" | cut -d '.' -f2 | base64 -d | jq .
           
-      - name: Assume Role in AWS
-        run: |
-          ROLE_ARN="arn:aws:iam::396608777381:role/EntraOIDCRole"
-          CREDS=$(aws sts assume-role-with-web-identity \
-            --role-arn "$ROLE_ARN" \
-            --role-session-name "github-action" \
-            --web-identity-token "$ENTRA_ID_TOKEN" \
-            --duration-seconds 3600)
-          echo $CREDS | jq .
+      # - name: Assume Role in AWS
+      #   run: |
+      #     ROLE_ARN="arn:aws:iam::396608777381:role/EntraOIDCRole"
+      #     CREDS=$(aws sts assume-role-with-web-identity \
+      #       --role-arn "$ROLE_ARN" \
+      #       --role-session-name "github-action" \
+      #       --web-identity-token "$ENTRA_ID_TOKEN" \
+      #       --duration-seconds 3600)
+      #     echo $CREDS | jq .
 
 
