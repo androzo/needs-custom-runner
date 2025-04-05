@@ -19,12 +19,22 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           allow-no-subscriptions: true
 
+      
       - name: Get Entra Token for AWS
+        id: get_entra_token
         run: |
-          TOKEN=$(az account get-access-token --query accessToken -o tsv)
+          # Get token for the specific Azure AD application (audience)
+          TOKEN=$(az account get-access-token --resource api://${{ secrets.AZURE_CLIENT_ID }} --query accessToken -o tsv)
+          
+          # Mask the token in logs (security best practice)
           echo "::add-mask::$TOKEN"
+          
+          # Store token in environment variable
           echo "ENTRA_ID_TOKEN=$TOKEN" >> $GITHUB_ENV
-          echo "$ENTRA_ID_TOKEN" | cut -d '.' -f2 | base64 -d | jq .
+          
+          # (Optional) Decode and inspect token claims
+          echo "Decoded token payload:"
+          echo "$TOKEN" | cut -d '.' -f2 | base64 -d | jq .
           
       - name: Assume Role in AWS
         run: |
