@@ -5,8 +5,8 @@ on:
     branches: [ main ]
 
 permissions:
-  id-token: write   # Required for OIDC
-  contents: read    # Required to checkout code
+  id-token: write
+  contents: read
 
 jobs:
   deploy:
@@ -15,18 +15,29 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Configure AWS Credentials via Azure AD
-        id: aws-auth
+      - name: Get Azure AD OIDC token
+        id: get-azure-token
+        run: |
+          # Use curl to get token from Azure AD
+          RESPONSE=$(curl -X POST \
+            -H "Content-Type: application/x-www-form-urlencoded" \
+            -d "client_id=${{ secrets.AZURE_CLIENT_ID }}" \
+            -d "client_secret=${{ secrets.AZURE_CLIENT_SECRET }}" \
+            -d "scope=https://graph.microsoft.com/.default" \
+            -d "grant_type=client_credentials" \
+            "https://login.microsoftonline.com/${{ secrets.AZURE_TENANT_ID }}/oauth2/v2.0/token")
+          
+          TOKEN=$(echo $RESPONSE | jq -r '.access_token')
+          echo "token=${TOKEN}" >> $GITHUB_OUTPUT
+        shell: bash
+
+      - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ env.AWS_ENTRA_ROLE }}
+          role-to-assume: ${{ secrets.AWS_ENTRA_ROLE }}
           aws-region: us-east-1
+          web-identity-token-file: ${{ steps.get-azure-token.outputs.token }}
           role-session-name: github-actions-${{ github.run_id }}
-          role-duration-seconds: 3600
-          oidc-provider: login.microsoftonline.com/${{ secrets.AZURE_TENANT_ID }}/v2.0
-          oidc-client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          oidc-client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
 
       - name: Verify AWS credentials
-        run: |
-          aws sts get-caller-identity
+        run: aws sts get-caller-identity
